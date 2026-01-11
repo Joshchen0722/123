@@ -1,0 +1,5 @@
+{
+  "name": "Hotel Desk Scheduler MVP",
+  "description": "A standalone, browser-based shift scheduling system for hotel front desk teams. Features rule validation, auto-generation, and CSV export.",
+  "requestFramePermissions": []
+}
