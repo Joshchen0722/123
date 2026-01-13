@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { AppState, Role, Staff } from '../types';
-import { Trash2, Plus, Edit } from 'lucide-react';
+import { Trash2, Plus, Edit, ShieldCheck } from 'lucide-react';
 
 interface StaffPageProps {
   state: AppState;
@@ -97,7 +98,7 @@ const StaffPage: React.FC<StaffPageProps> = ({ state, setState }) => {
                 <input 
                   value={formData.name || ''} 
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-slate-300 border p-2"
+                  className="mt-1 block w-full rounded-md border-slate-300 border p-2 bg-white text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none"
                 />
              </label>
              <label className="block">
@@ -105,7 +106,7 @@ const StaffPage: React.FC<StaffPageProps> = ({ state, setState }) => {
                 <select 
                   value={formData.role} 
                   onChange={e => setFormData({ ...formData, role: e.target.value as Role })}
-                  className="mt-1 block w-full rounded-md border-slate-300 border p-2"
+                  className="mt-1 block w-full rounded-md border-slate-300 border p-2 bg-white text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none"
                 >
                   <option value={Role.DAY_STAFF}>日班人員</option>
                   <option value={Role.NIGHT_FIX}>夜櫃固定</option>
@@ -118,7 +119,7 @@ const StaffPage: React.FC<StaffPageProps> = ({ state, setState }) => {
                   type="number"
                   value={formData.maxLeaves} 
                   onChange={e => setFormData({ ...formData, maxLeaves: parseInt(e.target.value) })}
-                  className="mt-1 block w-full rounded-md border-slate-300 border p-2"
+                  className="mt-1 block w-full rounded-md border-slate-300 border p-2 bg-white text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none"
                 />
              </label>
              <div className="flex items-center mt-6">
@@ -154,8 +155,8 @@ const StaffPage: React.FC<StaffPageProps> = ({ state, setState }) => {
           </div>
 
           <div className="flex gap-2 mt-6 justify-end">
-             <button onClick={() => setEditingId(null)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded">取消</button>
-             <button onClick={handleSave} className="px-4 py-2 bg-brand-600 text-white rounded hover:bg-brand-700">儲存</button>
+             <button onClick={() => setEditingId(null)} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded transition">取消</button>
+             <button onClick={handleSave} className="px-4 py-2 bg-brand-600 text-white rounded hover:bg-brand-700 transition">儲存</button>
           </div>
         </div>
       )}
@@ -168,27 +169,56 @@ const StaffPage: React.FC<StaffPageProps> = ({ state, setState }) => {
               <th className="p-4">角色</th>
               <th className="p-4">休假額度</th>
               <th className="p-4">指定休假</th>
-              <th className="p-4">支援夜櫃</th>
+              <th className="p-4">夜櫃支援</th>
               <th className="p-4 text-right">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {state.staffList.map(staff => (
               <tr key={staff.id} className="hover:bg-slate-50">
-                <td className="p-4 font-medium text-slate-900">{staff.name}</td>
+                <td className="p-4 font-bold text-slate-800">{staff.name}</td>
                 <td className="p-4">
-                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-medium 
-                    ${staff.role === Role.NIGHT_FIX ? 'bg-purple-100 text-purple-700' : 
-                      staff.role === Role.SUBSTITUTE ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {staff.role}
-                  </span>
+                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                     staff.role === Role.NIGHT_FIX ? 'bg-purple-100 text-purple-700' :
+                     staff.role === Role.SUBSTITUTE ? 'bg-blue-100 text-blue-700' :
+                     'bg-slate-100 text-slate-700'
+                   }`}>
+                     {staff.role}
+                   </span>
                 </td>
-                <td className="p-4">{staff.maxLeaves}</td>
-                <td className="p-4 text-slate-500">{staff.designatedDaysOff.length > 0 ? staff.designatedDaysOff.join(', ') + ' 號' : '-'}</td>
-                <td className="p-4">{staff.canNight ? '✅' : '-'}</td>
-                <td className="p-4 text-right flex justify-end gap-2">
-                  <button onClick={() => startEdit(staff)} className="p-1 text-slate-400 hover:text-brand-600"><Edit className="w-4 h-4" /></button>
-                  <button onClick={() => handleDelete(staff.id)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                <td className="p-4 text-slate-600">{staff.maxLeaves} 天</td>
+                <td className="p-4">
+                  <div className="flex flex-wrap gap-1">
+                    {staff.designatedDaysOff.length > 0 ? (
+                      staff.designatedDaysOff.map(d => (
+                        <span key={d} className="bg-red-50 text-red-600 text-[10px] px-1.5 py-0.5 rounded border border-red-100 font-medium">
+                          {d}號
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-slate-300 text-xs">-</span>
+                    )}
+                  </div>
+                </td>
+                <td className="p-4">
+                  {staff.canNight ? (
+                    <div className="flex items-center gap-1 text-purple-600">
+                      <ShieldCheck className="w-4 h-4" />
+                      <span className="text-xs font-medium">支援</span>
+                    </div>
+                  ) : (
+                    <span className="text-slate-300 text-xs">-</span>
+                  )}
+                </td>
+                <td className="p-4 text-right">
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => startEdit(staff)} className="p-2 text-slate-400 hover:text-brand-600 hover:bg-brand-50 rounded transition">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(staff.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -199,4 +229,5 @@ const StaffPage: React.FC<StaffPageProps> = ({ state, setState }) => {
   );
 };
 
+// Add missing default export
 export default StaffPage;

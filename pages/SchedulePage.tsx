@@ -63,10 +63,14 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ state, setState }) => {
   };
 
   const handleAutoGenerate = () => {
-    if (!window.confirm("確定要自動生成嗎？這將覆蓋本月現有排班。\n\n注意：生成後請務必檢查右側「紅色錯誤」，系統會自動檢測休息時間與人力缺口。")) return;
+    if (!window.confirm("確定要自動生成嗎？這將覆蓋本月現有排班。\n\n注意：系統會優先讓「已休滿額度」的人員出來上班，以確保每人都能休到應有的天數。")) return;
 
     const newAssignments: Record<string, Record<string, ShiftType>> = {};
     const { staffList, rules } = state;
+
+    // Track total OFF days assigned to each staff
+    const offDaysCount: Record<string, number> = {};
+    staffList.forEach(s => offDaysCount[s.id] = 0);
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateKey = formatDateKey(year, month, day);
@@ -84,37 +88,42 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ state, setState }) => {
         if (s.designatedDaysOff.includes(day)) {
           dailyAssign[s.id] = 'OFF';
           workingStaffIds.add(s.id);
+          offDaysCount[s.id]++; // It's an OFF day
         }
       });
 
+      /**
+       * Priority logic:
+       * When looking for someone to WORK (M, E, N), 
+       * we prioritize people who have ALREADY reached their maxLeaves target.
+       * This ensures those who still NEED days off are left in the pool to be "OFF".
+       */
+      const sortCandidatesForWorking = (list: Staff[]) => {
+        return [...list].sort((a, b) => {
+          const aReached = offDaysCount[a.id] >= a.maxLeaves ? 1 : 0;
+          const bReached = offDaysCount[b.id] >= b.maxLeaves ? 1 : 0;
+          if (aReached !== bReached) return bReached - aReached; // 1 (reached) comes before 0 (not reached)
+          return 0;
+        });
+      };
+
       // --- Step 2: Assign Night (N) ---
-      // Priority: Night Fixed -> Substitute (if canNight) -> Anyone (if canNight)
       let currentN = 0;
       
-      // 2.1 Try Night Fixed
-      if (currentN < needsN) {
-        const nightFix = staffList.find(s => s.role === Role.NIGHT_FIX && !workingStaffIds.has(s.id));
-        if (nightFix) {
-          dailyAssign[nightFix.id] = 'N';
-          workingStaffIds.add(nightFix.id);
+      // 2.1 Night Fixed
+      const nightFixes = staffList.filter(s => s.role === Role.NIGHT_FIX && !workingStaffIds.has(s.id));
+      for (const s of nightFixes) {
+        if (currentN < needsN) {
+          dailyAssign[s.id] = 'N';
+          workingStaffIds.add(s.id);
           currentN++;
         }
       }
 
-      // 2.2 Try Substitute
+      // 2.2 Other Night-capable staff
       if (currentN < needsN) {
-        const sub = staffList.find(s => s.role === Role.SUBSTITUTE && s.canNight && !workingStaffIds.has(s.id));
-        if (sub) {
-          dailyAssign[sub.id] = 'N';
-          workingStaffIds.add(sub.id);
-          currentN++;
-        }
-      }
-
-      // 2.3 Try Others (Fallback)
-      if (currentN < needsN) {
-        const others = shuffle<Staff>(staffList.filter(s => s.canNight && !workingStaffIds.has(s.id)));
-        for (const s of others) {
+        const potentialN = sortCandidatesForWorking(shuffle(staffList.filter(s => s.canNight && !workingStaffIds.has(s.id))));
+        for (const s of potentialN) {
           if (currentN < needsN) {
             dailyAssign[s.id] = 'N';
             workingStaffIds.add(s.id);
@@ -124,18 +133,9 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ state, setState }) => {
       }
 
       // --- Step 3: Assign Evening (E) ---
-      // Priority: Day Staff -> Substitute -> Others
       let currentE = 0;
-      
-      // Filter potential candidates (not working, not designated off)
-      // We categorize them to prioritize Day Staff first
-      const availableForE = staffList.filter(s => !workingStaffIds.has(s.id));
-      
-      const priorityE = shuffle<Staff>(availableForE.filter(s => s.role === Role.DAY_STAFF));
-      const secondaryE = shuffle<Staff>(availableForE.filter(s => s.role !== Role.DAY_STAFF)); // Substitute or NightFix (if forced)
-      const candidatesE = [...priorityE, ...secondaryE];
-
-      for (const s of candidatesE) {
+      const eveningCandidates = sortCandidatesForWorking(shuffle(staffList.filter(s => !workingStaffIds.has(s.id))));
+      for (const s of eveningCandidates) {
         if (currentE < needsE) {
           dailyAssign[s.id] = 'E';
           workingStaffIds.add(s.id);
@@ -145,18 +145,15 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ state, setState }) => {
 
       // --- Step 4: Assign Morning (M) ---
       let currentM = 0;
-      const availableForM = shuffle<Staff>(staffList.filter(s => !workingStaffIds.has(s.id)));
-
-      for (const s of availableForM) {
+      const morningCandidates = sortCandidatesForWorking(shuffle(staffList.filter(s => !workingStaffIds.has(s.id))));
+      for (const s of morningCandidates) {
         if (currentM < needsM) {
-          // Check "Block Evening to Morning" Rule
+          // Rule: block E -> M
           let blocked = false;
           if (rules.blockEveningToMorning && day > 1) {
             const prevKey = formatDateKey(year, month, day - 1);
             const prevShift = (newAssignments[prevKey] || {})[s.id];
-            if (prevShift === 'E') {
-              blocked = true;
-            }
+            if (prevShift === 'E') blocked = true;
           }
 
           if (!blocked) {
@@ -166,6 +163,14 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ state, setState }) => {
           }
         }
       }
+
+      // Final Check: Those not working and not already marked OFF by Step 1 are now OFF
+      staffList.forEach(s => {
+        if (!workingStaffIds.has(s.id)) {
+          dailyAssign[s.id] = 'OFF';
+          offDaysCount[s.id]++;
+        }
+      });
 
       newAssignments[dateKey] = dailyAssign;
     }
@@ -208,7 +213,7 @@ const SchedulePage: React.FC<SchedulePageProps> = ({ state, setState }) => {
               type="month" 
               value={state.schedule.month}
               onChange={(e) => setState(prev => ({ ...prev, schedule: { ...prev.schedule, month: e.target.value } }))}
-              className="border border-slate-300 rounded px-2 py-1 text-slate-800"
+              className="border border-slate-300 rounded px-2 py-1 bg-white text-slate-900 focus:ring-2 focus:ring-brand-500 outline-none"
             />
           </div>
 

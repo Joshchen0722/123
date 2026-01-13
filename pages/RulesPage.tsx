@@ -45,7 +45,7 @@ const RulesPage: React.FC<RulesPageProps> = ({ state, setState }) => {
                   type="number" min="0" 
                   value={rules.requirements.morningWeekday}
                   onChange={(e) => handleReqChange('morningWeekday', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border"
+                  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border bg-white text-slate-900"
                 />
               </label>
               <label className="block">
@@ -54,7 +54,7 @@ const RulesPage: React.FC<RulesPageProps> = ({ state, setState }) => {
                   type="number" min="0" 
                   value={rules.requirements.morningWeekend}
                   onChange={(e) => handleReqChange('morningWeekend', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border"
+                  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border bg-white text-slate-900"
                 />
               </label>
            </div>
@@ -65,7 +65,7 @@ const RulesPage: React.FC<RulesPageProps> = ({ state, setState }) => {
                   type="number" min="0" 
                   value={rules.requirements.evening}
                   onChange={(e) => handleReqChange('evening', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border"
+                  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border bg-white text-slate-900"
                 />
               </label>
               <label className="block">
@@ -74,7 +74,7 @@ const RulesPage: React.FC<RulesPageProps> = ({ state, setState }) => {
                   type="number" min="0" 
                   value={rules.requirements.night}
                   onChange={(e) => handleReqChange('night', parseInt(e.target.value))}
-                  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border"
+                  className="mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border bg-white text-slate-900"
                 />
               </label>
            </div>
@@ -108,7 +108,7 @@ const RulesPage: React.FC<RulesPageProps> = ({ state, setState }) => {
                     type="number" step="0.5" min="0"
                     value={rules.minRestHours}
                     onChange={(e) => handleChange('minRestHours', parseFloat(e.target.value))}
-                    className="block w-24 rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border"
+                    className="block w-24 rounded-md border-slate-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 sm:text-sm p-2 border bg-white text-slate-900"
                   />
                   <span className="text-xs text-slate-500">預設 11 小時</span>
                 </div>
